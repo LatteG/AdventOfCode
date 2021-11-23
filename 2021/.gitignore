@@ -1,0 +1,6 @@
+*.*
+input/*.*
+
+!aoc_utils.erl
+!day*.erl
+!input/day*.txt

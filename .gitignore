@@ -1,10 +1,1 @@
-# Turn the .gitignore into a whitelist instead of a blacklist
-*
-
-# Include the README
-!README.md
-
-# Include .erl + .hrl for 2021 as I'm using Erlang
-!/2021/*.erl
-!/2021/*.hrl
-!/2021/input/day*.txt
+*.dump
