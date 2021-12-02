@@ -44,6 +44,12 @@ run_day(DayNumber) ->
     Module = list_to_atom("day" ++ integer_to_list(DayNumber)),
     io:format("Running day ~p~n", [DayNumber]),
 
+    case dialyzer:run([{files, ["aoc_utils.erl", "day" ++ integer_to_list(DayNumber) ++ ".erl"]}, {from, src_code}]) of
+        [] -> ok;
+        DialyzerOutput ->
+            io:format("Dialyzer output:~n~p~n", [DialyzerOutput])
+    end,
+
     c:c(Module),
 
     BeforeP1 = erlang:timestamp(),

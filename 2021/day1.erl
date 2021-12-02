@@ -18,7 +18,7 @@ part2() ->
 	get_incr_amnt(Measurements).
 
 
--spec apply_sliding_window(list(non_neg_integer())) -> list(non_neg_integer).
+-spec apply_sliding_window(list(non_neg_integer())) -> list(non_neg_integer()).
 apply_sliding_window([]) -> [];
 apply_sliding_window([X]) -> [X];
 apply_sliding_window([X1, X2]) -> [X1 + X2, X2];
