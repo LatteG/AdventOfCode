@@ -13,15 +13,11 @@
 -spec create_day(integer()) -> ok.
 create_day(DayNumber) ->
     ModuleName = "day" ++ integer_to_list(DayNumber),
-    ModuleContents = "-module(" ++ ModuleName ++ ").\n-export([\n\tpart1/0,\n\tpart2/0\n]).\n\n\n-spec part1() -> integer().\npart1() ->\n\t_ = aoc_utils:read_file(\"input\\\\" ++ ModuleName ++ "_test.txt\", lines),\n\t-1.\n\n\n-spec part2() -> integer().\npart2() ->\n\t_ = aoc_utils:read_file(\"input\\\\" ++ ModuleName ++ "_test.txt\", lines),\n\t-1.\n",
+    ModuleContents = "-module(" ++ ModuleName ++ ").\n-export([\n\tpart1/0,\n\tpart2/0\n]).\n\n\n-compile([nowarn_unused_function]).\n-dialyzer(no_unused).\n\n\n-spec part1() -> integer().\npart1() ->\n\t_ = aoc_utils:read_file(\"input\\\\" ++ ModuleName ++ "_test.txt\", lines),\n\t-1.\n\n\n-spec part2() -> integer().\npart2() ->\n\t_ = aoc_utils:read_file(\"input\\\\" ++ ModuleName ++ "_test.txt\", lines),\n\t-1.\n",
 
     file:write_file(ModuleName ++ ".erl", ModuleContents),
     file:write_file("input\\" ++ ModuleName ++ ".txt", ""),
-    file:write_file("input\\" ++ ModuleName ++ "_test.txt", ""),
-
-    c:c(list_to_atom(ModuleName)),
-
-    dialyzer:run([{files, [ModuleName ++ ".beam"]}, {analysis_type, plt_add}]).
+    file:write_file("input\\" ++ ModuleName ++ "_test.txt", "").
 
 
 -spec read_file(string(), read_type()) -> list(string()) | list(integer) | list(list(integer())).
@@ -50,11 +46,7 @@ run_day(DayNumber) ->
 
     c:c(Module),
 
-    case dialyzer:run([{files, ["aoc_utils.erl", "day" ++ integer_to_list(DayNumber) ++ ".erl"]}, {from, src_code}]) of
-        [] -> ok;
-        DialyzerOutput ->
-            io:format("Dialyzer output:~n~p~n", [DialyzerOutput])
-    end,
+    dialyzer:run([{files, ["aoc_utils.erl", "day" ++ integer_to_list(DayNumber) ++ ".erl"]}, {from, src_code}]),
 
     BeforeP1 = erlang:timestamp(),
     Part1 = Module:part1(),
