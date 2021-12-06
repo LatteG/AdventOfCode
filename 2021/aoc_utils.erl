@@ -16,6 +16,7 @@ create_day(DayNumber) ->
     ModuleContents = "-module(" ++ ModuleName ++ ").\n-export([\n\tpart1/0,\n\tpart2/0\n]).\n\n\n-compile([nowarn_unused_function]).\n-dialyzer(no_unused).\n\n\n-spec part1() -> integer().\npart1() ->\n\t_ = aoc_utils:read_file(\"input\\\\" ++ ModuleName ++ "_test.txt\", lines),\n\t-1.\n\n\n-spec part2() -> integer().\npart2() ->\n\t_ = aoc_utils:read_file(\"input\\\\" ++ ModuleName ++ "_test.txt\", lines),\n\t-1.\n",
 
     file:write_file(ModuleName ++ ".erl", ModuleContents),
+    c:c(ModuleName ++ ".erl"),
     file:write_file("input\\" ++ ModuleName ++ ".txt", ""),
     file:write_file("input\\" ++ ModuleName ++ "_test.txt", "").
 
@@ -46,7 +47,10 @@ run_day(DayNumber) ->
 
     c:c(Module),
 
-    dialyzer:run([{files, ["aoc_utils.erl", "day" ++ integer_to_list(DayNumber) ++ ".erl"]}, {from, src_code}]),
+    case dialyzer:run([{files, ["aoc_utils.erl", "day" ++ integer_to_list(DayNumber) ++ ".erl"]}, {from, src_code}]) of
+        [] -> ok;
+        Warnings -> io:format("~p~n", [Warnings])
+    end,
 
     BeforeP1 = erlang:timestamp(),
     Part1 = Module:part1(),
