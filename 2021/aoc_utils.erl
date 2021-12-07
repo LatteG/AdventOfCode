@@ -21,7 +21,7 @@ create_day(DayNumber) ->
     file:write_file("input\\" ++ ModuleName ++ "_test.txt", "").
 
 
--spec read_file(string(), read_type()) -> list(string()) | list(integer) | list(list(integer())).
+-spec read_file(string(), read_type()) -> list(string()) | list(integer()) | list(list(integer())).
 read_file(FileName, {sorted, Type}) -> lists:sort(read_file(FileName, Type));
 read_file(FileName, Type) ->
     {ok, FileBinary} = file:read_file(FileName),
