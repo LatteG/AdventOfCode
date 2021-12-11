@@ -7,7 +7,7 @@
     run_days/1
 ]).
 
--type read_type() :: lines | ints | int_lines | {sorted, read_type()}.
+-type read_type() :: lines | ints | int_lines | digit_grid | {sorted, read_type()}.
 
 
 -spec create_day(integer()) -> ok.
@@ -21,7 +21,7 @@ create_day(DayNumber) ->
     file:write_file("input\\" ++ ModuleName ++ "_test.txt", "").
 
 
--spec read_file(string(), read_type()) -> list(string()) | list(integer()) | list(list(integer())).
+-spec read_file(string(), read_type()) -> list(string()) | list(integer()) | list(list(integer())) | list(list(0..9)).
 read_file(FileName, {sorted, Type}) -> lists:sort(read_file(FileName, Type));
 read_file(FileName, Type) ->
     {ok, FileBinary} = file:read_file(FileName),
@@ -36,7 +36,14 @@ read_file(FileName, Type) ->
             Lines = lists:droplast(string:split(FileContents, "\n", all)),
             lists:map(fun(L) ->
                           lists:map(fun list_to_integer/1, string:split(L, ",", all))
-                      end, Lines)
+                      end, Lines);
+        digit_grid ->
+            Lines = lists:droplast(string:split(FileContents, "\n", all)),
+            lists:map(fun(String) ->
+                lists:map(fun(Character) ->
+                    list_to_integer([Character])
+                end, String)
+            end, Lines)
     end.
 
 
