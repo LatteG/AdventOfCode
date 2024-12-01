@@ -1,0 +1,10 @@
+[package]
+name = "aoc_2023_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+regex   = "1.0.0"
+rayon   = "1.10"
+num     = "0.4.3"
+array2d = "0.3.2"

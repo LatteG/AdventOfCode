@@ -1,4 +1,6 @@
 !/src/day*.rs
+!/src/main.rs
+!/src/template.rs
 !/input/day*.txt
 !Cargo.lock
 !Cargo.toml
