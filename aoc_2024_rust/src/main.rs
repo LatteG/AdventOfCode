@@ -4,6 +4,7 @@ use std::{fs, io};
 use std::collections::HashMap;
 
 mod day01;
+mod day02;
 
 fn main() {
     println!("Which day should we check?");
@@ -22,6 +23,7 @@ fn main() {
 fn run_day(day_num:u8) {
     let mut days = HashMap::<u8, fn(&str)>::new();
     days.insert( 1, |s|{day01::task1(s); day01::task2(s);});
+    days.insert( 2, |s|{day02::task1(s); day02::task2(s);});
 
     let day_funs = days.get(&day_num).unwrap();
 

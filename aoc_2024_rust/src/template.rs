@@ -1,7 +1,7 @@
 pub fn task1(input:&str) {
-    todo!()
+    println!("TODO: Task 1")
 }
 
 pub fn task2(input:&str) {
-    todo!()
+    println!("TODO: Task 2")
 }
