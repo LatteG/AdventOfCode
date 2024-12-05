@@ -7,6 +7,7 @@ mod day01;
 mod day02;
 mod day03;
 mod day04;
+mod day05;
 
 fn main() {
     println!("Which day should we check?");
@@ -28,6 +29,7 @@ fn run_day(day_num:u8) {
     days.insert( 2, |s|{day02::task1(s); day02::task2(s);});
     days.insert( 3, |s|{day03::task1(s); day03::task2(s);});
     days.insert( 4, |s|{day04::task1(s); day04::task2(s);});
+    days.insert( 5, |s|{day05::task1(s); day05::task2(s);});
 
     let day_funs = days.get(&day_num).unwrap();
 
