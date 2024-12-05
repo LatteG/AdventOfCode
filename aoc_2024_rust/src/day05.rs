@@ -6,7 +6,7 @@ impl PageOrderingRules {
     fn correctly_ordered_middle_page(&self, pages:&Vec<i32>) -> i32 {
         let mut correctly_ordered_pages: Vec<i32> = pages.clone();
         while !self.is_correctly_ordered(&correctly_ordered_pages) {
-            correctly_ordered_pages = self.rules.iter().fold(pages.clone(), |acc, rule| self.update_order(acc, rule));
+            correctly_ordered_pages = self.rules.iter().fold(correctly_ordered_pages.clone(), |acc, rule| self.update_order(acc, rule));
         }
         get_middle_page(correctly_ordered_pages)
     }
@@ -54,10 +54,8 @@ pub fn task1(input:&str) {
 pub fn task2(input:&str) {
     let (rules, updates): (PageOrderingRules, Vec<Vec<i32>>) = parse_input(input);
     let incorrect_updates: Vec<Vec<i32>> = updates.into_iter().filter(|pages| !rules.is_correctly_ordered(pages)).collect();
-    println!("Incorrect updates:\n{:?}", incorrect_updates);
     let updated_middle_pages: Vec<i32> = incorrect_updates.iter().map(|inc_upd| rules.correctly_ordered_middle_page(inc_upd)).collect();
     
-    println!("Middle pages:\n{:?}", updated_middle_pages);
     println!("The sum of the updated incorrect middle page updates is: {}", updated_middle_pages.iter().sum::<i32>());
 }
 
