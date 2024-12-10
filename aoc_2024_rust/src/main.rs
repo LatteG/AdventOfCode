@@ -12,6 +12,7 @@ mod day06;
 mod day07;
 mod day08;
 mod day09;
+mod day10;
 
 fn main() {
     println!("Which day should we check?");
@@ -29,15 +30,16 @@ fn main() {
 
 fn run_day(day_num:u8) {
     let mut days = HashMap::<u8, fn(&str)>::new();
-    days.insert( 1, |s|{day01::task1(s); day01::task2(s);});
-    days.insert( 2, |s|{day02::task1(s); day02::task2(s);});
-    days.insert( 3, |s|{day03::task1(s); day03::task2(s);});
-    days.insert( 4, |s|{day04::task1(s); day04::task2(s);});
-    days.insert( 5, |s|{day05::task1(s); day05::task2(s);});
-    days.insert( 6, |s|{day06::task1(s); day06::task2(s);});
-    days.insert( 7, |s|{day07::task1(s); day07::task2(s);});
-    days.insert( 8, |s|{day08::task1(s); day08::task2(s);});
-    days.insert( 9, |s|{day09::task1(s); day09::task2(s);});
+    days.insert(  1, |s|{day01::task1(s); day01::task2(s);});
+    days.insert(  2, |s|{day02::task1(s); day02::task2(s);});
+    days.insert(  3, |s|{day03::task1(s); day03::task2(s);});
+    days.insert(  4, |s|{day04::task1(s); day04::task2(s);});
+    days.insert(  5, |s|{day05::task1(s); day05::task2(s);});
+    days.insert(  6, |s|{day06::task1(s); day06::task2(s);});
+    days.insert(  7, |s|{day07::task1(s); day07::task2(s);});
+    days.insert(  8, |s|{day08::task1(s); day08::task2(s);});
+    days.insert(  9, |s|{day09::task1(s); day09::task2(s);});
+    days.insert( 10, |s|{day10::task1(s); day10::task2(s);});
 
     let day_funs = days.get(&day_num).unwrap();
 
