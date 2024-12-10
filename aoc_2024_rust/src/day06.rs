@@ -1,4 +1,4 @@
-use std::{fmt::Debug, str::FromStr};
+use std::{fmt::Debug, str::FromStr, collections::HashSet};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Direction {
@@ -79,14 +79,20 @@ impl Tile {
     }
 }
 
-#[derive(Copy, Clone)]
+enum StepStatus<T> {
+    Continue(T),
+    Exited,
+    Loops,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
 struct Guard {
     direction: Direction,
     position: (usize, usize),
 }
 
 impl Guard {
-    fn step(&self, tile_map: &TileMap) -> (Option<Guard>, TileMap) {
+    fn step(&self, tile_map: &TileMap) -> (StepStatus<Guard>, TileMap) {
         let (delta_x, delta_y): (i32, i32) = self.direction.get_coordinate_offset();
 
         let next_x: i32 = self.position.0 as i32 + delta_x;
@@ -94,17 +100,17 @@ impl Guard {
 
         let mut return_map: TileMap = tile_map.clone();
 
-        return_map[self.position.1][self.position.0] = Tile::Visited;
-
         if next_x < 0 || next_x >= return_map[0].len() as i32 || next_y < 0 || next_y >= return_map.len() as i32 {
-            (None, return_map)
-        } else if return_map[next_y as usize][next_x as usize] == Tile::Obstacle {
+            (StepStatus::Exited, return_map)
+        } else if return_map[next_y as usize][next_x as usize] == Tile::Guard(self.direction) {
+            (StepStatus::Loops, return_map)
+        }else if return_map[next_y as usize][next_x as usize] == Tile::Obstacle {
             let rotated_guard: Guard = Guard { direction: self.direction.rotate(), position: self.position };
             rotated_guard.step(&return_map)
         } else {
             let moved_guard: Guard = Guard { direction: self.direction, position: (next_x as usize, next_y as usize) };
             return_map[next_y as usize][next_x as usize] = Tile::Guard(self.direction);
-            (Some(moved_guard), return_map)
+            (StepStatus::Continue(moved_guard), return_map)
         }
     }
 }
@@ -119,27 +125,63 @@ type TileMap = Vec<Vec<Tile>>;
 
 pub fn task1(input:&str) {
     let (guard, tile_map): (Guard, TileMap) = parse_input(input);
-    // print_tile_map(&tile_map);
-    // println!("{:#?}", guard);
     let final_map: TileMap = move_guard(guard, tile_map);
-    // print_tile_map(&final_map);
     let visited_tile_count: i32 = count_visited_tiles(&final_map);
     println!("The guard visited {} tiles", visited_tile_count);
 }
 
 pub fn task2(input:&str) {
-    println!("TODO: Task 2")
+    let (guard, tile_map): (Guard, TileMap) = parse_input(input);
+    let (_, guard_path): (bool, Vec<Guard>) = find_guard_path(guard.clone(), tile_map.clone());
+    let looping_obstacle_positions: HashSet<(usize, usize)> = find_all_looping_obstacle_positions(guard, guard_path, &tile_map);
+    // let mut obs_map: TileMap = tile_map.clone();
+    // for (obs_x, obs_y) in looping_obstacle_positions {
+    //     obs_map[obs_y][obs_x] = Tile::Visited;
+    // }
+    // print_tile_map(&obs_map);
+    println!("Loops can be created by playing an obstacle in {} possible positions", looping_obstacle_positions.len());
+}
+
+fn find_all_looping_obstacle_positions(guard: Guard, guard_path: Vec<Guard>, tile_map: &TileMap) -> HashSet<(usize, usize)> {
+    let mut looping_obstacle_pos: HashSet<(usize, usize)> = HashSet::new();
+    for guard_step in guard_path {
+        let obs_x: i32 = guard_step.position.0 as i32 + guard_step.direction.get_coordinate_offset().0;
+        let obs_y: i32 = guard_step.position.1 as i32 + guard_step.direction.get_coordinate_offset().1;
+        if obs_x < 0 || obs_x >= tile_map[0].len() as i32 || obs_y < 0 || obs_y >= tile_map.len() as i32 {
+            continue;
+        }
+        let mut obs_map: TileMap = tile_map.clone();
+        obs_map[obs_y as usize][obs_x as usize] = Tile::Obstacle;
+        let (is_loop, _): (bool, Vec<Guard>) = find_guard_path(guard.clone(), obs_map);
+        if is_loop {
+            looping_obstacle_pos.insert((obs_x as usize, obs_y as usize));
+        }
+    }
+    looping_obstacle_pos
+}
+
+fn find_guard_path(mut guard:Guard, mut tile_map:TileMap) -> (bool, Vec<Guard>) {
+    let mut guard_path: Vec<Guard> = Vec::new();
+    loop {
+        guard_path.push(guard.clone());
+        match guard.step(&tile_map) {
+            (StepStatus::Exited, _) => return (false, guard_path),
+            (StepStatus::Loops, _) => return (true, guard_path),
+            (StepStatus::Continue(moved_guard), updated_map) => (guard, tile_map) = (moved_guard, updated_map),
+        }
+    }
 }
 
 fn count_visited_tiles(tile_map: &TileMap) -> i32{
-    tile_map.iter().fold(0, |acc, line| acc + line.iter().fold(0, |acc, tile| if *tile == Tile::Visited {acc + 1} else {acc}))
+    tile_map.iter().fold(0, |acc, line| acc + line.iter().fold(0, |acc, tile| if tile.is_guard() {acc + 1} else {acc}))
 }
 
-fn move_guard(mut guard: Guard, mut tile_map: TileMap) -> TileMap {
+fn move_guard(mut guard: Guard, mut tile_map:TileMap) -> TileMap {
     loop {
         match guard.step(&tile_map) {
-            (None, return_map) => return return_map,
-            (Some(moved_guard), updated_map) => (guard, tile_map) = (moved_guard, updated_map),
+            (StepStatus::Exited, return_map) => return return_map,
+            (StepStatus::Continue(moved_guard), updated_map) => (guard, tile_map) = (moved_guard, updated_map),
+            (StepStatus::Loops, _) => panic!("The path loops"),
         }
     }
 }
