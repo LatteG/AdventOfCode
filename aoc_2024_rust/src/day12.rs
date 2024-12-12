@@ -15,7 +15,7 @@ impl Region {
         self.plots.len() as u32
     }
 
-    fn get_perimeter(&self) -> u32 {
+    fn get_shape(&self) -> Vec<Vec<bool>> {
         let (xs, ys): (Vec<i32>, Vec<i32>) = self.plots.clone().into_iter().unzip();
         let min_x: i32 = *xs.iter().min().unwrap();
         let max_x: i32 = *xs.iter().max().unwrap();
@@ -25,8 +25,13 @@ impl Region {
         for (x, y) in self.plots.clone() {
             shape[(y - min_y) as usize][(x - min_x) as usize] = true;
         }
+
+        shape
+    }
+
+    fn get_perimeter(&self) -> u32 {
         let mut perimeter: u32 = 0;
-        println!("Shape:");
+        let shape: Vec<Vec<bool>> = self.get_shape();
         for y in 0..shape.len() {
             for x in 0..shape[0].len() {
                 if shape[y][x] {
@@ -45,8 +50,57 @@ impl Region {
         perimeter
     }
 
+    fn get_number_of_sides(&self) -> u32 {
+        let mut sides: u32 = 0;
+        let shape: Vec<Vec<bool>> = self.get_shape();
+        for y in 0..shape.len() {
+            for x in 0..shape[0].len() {
+                if shape[y][x] {
+                    let x_neg_in:bool = 0 <= x as i32 - 1;
+                    let y_neg_in:bool = 0 <= y as i32 - 1;
+                    let x_pos_in:bool = x + 1 < shape[0].len();
+                    let y_pos_in:bool = y + 1 < shape.len();
+
+                    // Check left
+                    if !x_neg_in || !shape[y][x-1] {
+                        if !y_neg_in || !shape[y-1][x] || y_neg_in && x_neg_in && shape[y-1][x-1] {
+                            sides += 1
+                        }
+                    }
+
+                    // Check top
+                    if !y_neg_in || !shape[y-1][x] {
+                        if !x_neg_in || !shape[y][x-1] || x_neg_in && y_neg_in && shape[y-1][x-1] {
+                            sides += 1
+                        }
+                    }
+
+                    // Check right
+                    if !x_pos_in || !shape[y][x+1] {
+                        if !y_pos_in || !shape[y+1][x] || y_pos_in && x_pos_in && shape[y+1][x+1] {
+                            sides += 1
+                        }
+                    }
+
+                    // Check bot
+                    if !y_pos_in || !shape[y+1][x] {
+                        if !x_pos_in || !shape[y][x+1] || x_pos_in && y_pos_in && shape[y+1][x+1] {
+                            sides += 1
+                        }
+                    }
+                }
+            }
+        }
+        sides
+    }
+
     fn get_price(&self) -> u32 {
         let price: u32 = self.get_area() * self.get_perimeter();
+        price
+    }
+
+    fn get_discount_price(&self) -> u32 {
+        let price: u32 = self.get_area() * self.get_number_of_sides();
         price
     }
 }
@@ -63,7 +117,11 @@ pub fn task1(input:&str) {
 }
 
 pub fn task2(input:&str) {
-    println!("TODO: Task 2")
+    let plant_map: PlantMap = parse_input(input);
+    let regions: Vec<Region> = find_regions(plant_map.clone());
+    let price: u32 = regions.iter().fold(0, |acc, region| acc + region.get_discount_price());
+    
+    println!("Total fence discounted cost: {}", price)
 }
 
 fn find_regions(mut plant_map:PlantMap) -> Vec<Region> {
