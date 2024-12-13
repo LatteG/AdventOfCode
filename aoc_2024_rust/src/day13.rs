@@ -5,12 +5,12 @@ struct ClawMachine {
 }
 
 impl ClawMachine {
-    fn get_prize(&self) -> Option<u32> {
+    fn get_prize(&self) -> Option<u64> {
         for a in 0..=100 as usize {
             for b in 0..=100 as usize {
                 let claw_location: Coord = (a * self.a_button.0 + b * self.b_button.0, a * self.a_button.1 + b * self.b_button.1);
                 if claw_location == self.prize {
-                    return Some((a * 3 + b) as u32);
+                    return Some((a * 3 + b) as u64);
                 } else if claw_location.0 > self.prize.0 || claw_location.0 > self.prize.0 {
                     if b == 0 {
                         return None;
@@ -23,16 +23,38 @@ impl ClawMachine {
         return None;
     }
 
-    fn get_prize_big_offset(&self) -> Option<u32> {
+    fn get_prize_big_offset(&self) -> Option<u64> {
         let offset: usize = 10000000000000;
         let prize_location @ (prize_x, prize_y): Coord = (self.prize.0 + offset, self.prize.1 + offset);
 
-        let a_slope: f32 = self.a_button.1 as f32 / self.a_button.0 as f32;
-        let b_slope: f32 = self.b_button.1 as f32 / self.b_button.0 as f32;
+        let a_slope: f64 = self.a_button.1 as f64 / self.a_button.0 as f64;
+        let b_slope: f64 = self.b_button.1 as f64 / self.b_button.0 as f64;
 
         // Check if it is even worth trying
-        if (prize_y as f32) < (a_slope * prize_x as f32).min(b_slope * prize_x as f32) || (prize_y as f32) > (a_slope * prize_x as f32).max(b_slope * prize_x as f32) {
+        if (prize_y as f64) < (a_slope * prize_x as f64).min(b_slope * prize_x as f64) || (prize_y as f64) > (a_slope * prize_x as f64).max(b_slope * prize_x as f64) {
             return None;
+        }
+
+        let prize_slope: f64 = prize_y as f64 / prize_x as f64;
+
+        let shallower_button @ ((shallower_x, shallower_y), shallower_cost): (Coord, u64) = if a_slope < b_slope {(self.a_button, 3)} else {(self.b_button, 1)};
+        let steeper_button @ ((steeper_x, steeper_y), steeper_cost): (Coord, u64) = if a_slope > b_slope {(self.a_button, 3)} else {(self.b_button, 1)};
+
+        let mut claw_pos: Coord = self.b_button;
+        let mut acc_cost: u64 = 1;
+
+        while claw_pos.0 < prize_x && claw_pos.1 < prize_y {
+            let step_size: usize = (((prize_x - claw_pos.0) / shallower_x.max(steeper_x)).min((prize_y - claw_pos.1) / shallower_y.max(steeper_y)) / 10).max(1);
+            if (claw_pos.1 as f64) < prize_slope * claw_pos.0 as f64 {
+                claw_pos = (claw_pos.0 + steeper_x * step_size, claw_pos.1 + steeper_y * step_size);
+                acc_cost += steeper_cost * step_size as u64;
+            } else {
+                claw_pos = (claw_pos.0 + shallower_x * step_size, claw_pos.1 + shallower_y * step_size);
+                acc_cost += shallower_cost * step_size as u64;
+            }
+            if claw_pos == prize_location {
+                return Some(acc_cost);
+            }
         }
 
         return None;
@@ -43,8 +65,8 @@ type Coord = (usize, usize);
 
 pub fn task1(input:&str) {
     let claw_machines: Vec<ClawMachine> = parse_input(input);
-    let prize_costs: Vec<Option<u32>> = claw_machines.iter().map(|cm| cm.get_prize()).collect();
-    let token_amount: u32 = prize_costs.iter().fold(0, |acc, maybe_cost| match maybe_cost {
+    let prize_costs: Vec<Option<u64>> = claw_machines.iter().map(|cm| cm.get_prize()).collect();
+    let token_amount: u64 = prize_costs.iter().fold(0, |acc, maybe_cost| match maybe_cost {
         Some(cost) => acc + cost,
         None => acc,
     });
@@ -53,8 +75,8 @@ pub fn task1(input:&str) {
 
 pub fn task2(input:&str) {
     let claw_machines: Vec<ClawMachine> = parse_input(input);
-    let prize_costs: Vec<Option<u32>> = claw_machines.iter().map(|cm| cm.get_prize_big_offset()).collect();
-    let token_amount: u32 = prize_costs.iter().fold(0, |acc, maybe_cost| match maybe_cost {
+    let prize_costs: Vec<Option<u64>> = claw_machines.iter().map(|cm| cm.get_prize_big_offset()).collect();
+    let token_amount: u64 = prize_costs.iter().fold(0, |acc, maybe_cost| match maybe_cost {
         Some(cost) => acc + cost,
         None => acc,
     });
