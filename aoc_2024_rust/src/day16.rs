@@ -6,17 +6,17 @@ enum Tile {
     Wall,
     Start,
     End,
-    Visited
+    Visited(Reindeer)
 }
 
 impl Debug for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Tile::Empty   => write!(f, "."),
-            Tile::Wall    => write!(f, "#"),
-            Tile::Start   => write!(f, "S"),
-            Tile::End     => write!(f, "E"),
-            Tile::Visited => write!(f, "O"),
+            Tile::Empty => write!(f, "."),
+            Tile::Wall  => write!(f, "#"),
+            Tile::Start => write!(f, "S"),
+            Tile::End   => write!(f, "E"),
+            Tile::Visited(Reindeer { pos: _, score: _, facing: dir }) => write!(f, "{:?}", dir),
         }
     }
 }
@@ -104,15 +104,21 @@ impl Reindeer {
             let mut reindeers: Vec<Reindeer> = Vec::new();
             for dir in [self.facing.get_counterclockwise(), self.facing, self.facing.get_clockwise()] {
                 let (dx, dy): Coord = dir.get_delta_coord();
-                if vec![Tile::Empty, Tile::End].contains(&labyrinth[(self.pos.1 + dy) as usize][(self.pos.0 + dx) as usize]) {
-                    reindeers.push(Reindeer{
+                match labyrinth[(self.pos.1 + dy) as usize][(self.pos.0 + dx) as usize] {
+                    Tile::End | Tile::Empty => reindeers.push(Reindeer{
                         pos: (self.pos.0 + dx, self.pos.1 + dy),
                         score: self.score + if dir == self.facing {1} else {1001},
                         facing: dir,
-                    });
+                    }),
+                    Tile::Visited(Reindeer { pos: _, score: old_score, facing: _ }) if old_score > self.score => reindeers.push(Reindeer{
+                        pos: (self.pos.0 + dx, self.pos.1 + dy),
+                        score: self.score + if dir == self.facing {1} else {1001},
+                        facing: dir,
+                    }),
+                    _ => (),
                 }
             }
-            labyrinth[self.pos.1 as usize][self.pos.0 as usize] = Tile::Visited;
+            labyrinth[self.pos.1 as usize][self.pos.0 as usize] = Tile::Visited(self);
             (reindeers, labyrinth)
         }
     }
@@ -127,10 +133,6 @@ type Labyrinth = Vec<Vec<Tile>>;
 
 pub fn task1(input:&str) {
     let (labyrinth, reindeer): (Labyrinth, Reindeer) = parse_input(input);
-    // for line in &labyrinth {
-    //     println!("{:?}", line);
-    // }
-    // println!("{:?}", reindeer);
     let best_reindeer: Reindeer = run_through_maze(reindeer, labyrinth);
     println!("Lowest score for labyrinth is: {}", best_reindeer.score);
 }
@@ -149,10 +151,6 @@ fn run_through_maze(reindeer:Reindeer, mut labyrinth:Labyrinth) -> Reindeer {
             reindeer_acc.append(&mut temp);
         }
         reindeers = reindeer_acc.clone();
-        // for line in &labyrinth {
-        //     println!("{:?}", line)
-        // }
-        // println!("{:?}", reindeers)
     }
     *reindeers.iter().reduce(|min_rd, rd| min_rd.min(rd)).unwrap()
 }
