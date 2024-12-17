@@ -29,26 +29,27 @@ pub fn task2(input:&str) {
     let (register, program): (Register, Program) = parse_input(input);
     println!("Program: {:?}", program);
     let program_nums: Vec<u32> = input.split_once("Program: ").unwrap().1.split(",").map(|num_str| num_str.parse::<u32>().unwrap()).collect();
-    let mut output_program: Program = Vec::new();
-    let mut a_start_value: u64 = 1;
-    loop {
-        let output: Vec<u32> = evaluate_program(Register { a: a_start_value, b: 0, c: 0 }, program.clone());
-        let mut matches: u32 = 0;
-        for i in 0..output.len() {
-            if output[i] == program_nums[i] {
-                matches += 1;
-            } else {
-                break;
+    match find(0, 0, program_nums, program) {
+        Some(a) => println!("Program loops when a = {}", a),
+        None => panic!(":("),
+    }
+}
+
+fn find(a:u64, i:usize, nums:Vec<u32>, program:Program) -> Option<u64> {
+    let output: Vec<u32> = evaluate_program(Register { a, b: 0, c: 0 }, program.clone());
+    if nums == output {
+        Some(a)
+    } else if output == nums[(nums.len() - i)..] || i == 0{
+        for n in 0..8 {
+            match find(8 * a + n, i + 1, nums.clone(), program.clone()) {
+                None => (),
+                answer => return answer,
             }
         }
-        if matches == program_nums.len() as u32 {
-            break;
-        } else {
-            a_start_value += 8_u64.pow(matches);
-        }
+        None
+    } else {
+        None
     }
-
-    println!("Program loops when a = {}", a_start_value);
 }
 
 fn evaluate_program(mut register:Register, program:Program) -> Vec<u32> {
