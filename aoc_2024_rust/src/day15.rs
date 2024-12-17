@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, io::Empty};
 
 #[derive(Clone, Eq, PartialEq)]
 enum Tile {
@@ -15,6 +15,27 @@ impl Debug for Tile {
             Tile::Box   => write!(f, "O"),
             Tile::Robot => write!(f, "@"),
             Tile::Empty => write!(f, "."),
+        }
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
+enum WideTile {
+    Wall,
+    BoxLeft,
+    BoxRight,
+    Robot,
+    Empty
+}
+
+impl Debug for WideTile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WideTile::Wall     => write!(f, "#"),
+            WideTile::BoxLeft  => write!(f, "["),
+            WideTile::BoxRight => write!(f, "]"),
+            WideTile::Robot    => write!(f, "@"),
+            WideTile::Empty    => write!(f, "."),
         }
     }
 }
@@ -51,6 +72,7 @@ impl Debug for Direction {
 
 type Coord = (i32, i32);
 type Warehouse = Vec<Vec<Tile>>;
+type WideWarehouse = Vec<Vec<WideTile>>;
 
 pub fn task1(input:&str) {
     let (warehouse, moves): (Warehouse, Vec<Direction>) = parse_input(input);
@@ -60,6 +82,13 @@ pub fn task1(input:&str) {
 }
 
 pub fn task2(input:&str) {
+    let (warehouse, moves): (Warehouse, Vec<Direction>) = parse_input(input);
+    let wide_warehouse: WideWarehouse = enwiden_warehouse(warehouse);
+    let robot_pos: Coord = get_robot_wide_pos(&wide_warehouse);
+    println!("Start:");
+    print_wide_warehouse(&wide_warehouse);
+    let (warehouse_after_moves, _): (WideWarehouse, Coord) = moves.iter().fold((wide_warehouse.clone(), robot_pos), move_robot_wide);
+
     println!("TODO: Task 2")
 }
 
@@ -74,6 +103,105 @@ fn calc_gps_score(warehouse:&Warehouse) -> i32 {
         }
     }
     gps_cum_sum
+}
+
+fn print_wide_warehouse(ww:&WideWarehouse) {
+    for line in ww {
+        println!("{:?}", line);
+    }
+}
+
+fn move_robot_wide((mut warehouse, robot_pos @ (rx, ry)):(WideWarehouse, Coord), move_direction:&Direction) -> (WideWarehouse, Coord) {
+    println!("\nMove {:?}:", move_direction);
+    let delta_pos @ (dx, dy): Coord = move_direction.get_delta_coord();
+    let next_robot_pos @ (nrx, nry): Coord = (rx + dx, ry + dy);
+    match warehouse[nry as usize][nrx as usize] {
+        WideTile::Robot => panic!("A second robot has been found."),
+        WideTile::Wall  => (warehouse, robot_pos),
+        WideTile::Empty => {
+            warehouse[nry as usize][nrx as usize] = WideTile::Robot;
+            warehouse[ry as usize][rx as usize] = WideTile::Empty;
+            print_wide_warehouse(&warehouse);
+            (warehouse, next_robot_pos)
+        },
+        WideTile::BoxLeft | WideTile::BoxRight   => {
+            if *move_direction == Direction::Left || *move_direction == Direction::Right {
+                let mut box_stop_x: i32 = nrx + dx;
+                let mut box_stop_y: i32 = nry + dy;
+                while vec![WideTile::BoxLeft, WideTile::BoxRight].contains(&warehouse[box_stop_y as usize][box_stop_x as usize]) {
+                    box_stop_x += dx;
+                    box_stop_y += dy;
+                }
+                match warehouse[box_stop_y as usize][box_stop_x as usize] {
+                    WideTile::Wall  => {
+                        print_wide_warehouse(&warehouse);
+                        (warehouse, robot_pos)
+                    },
+                    WideTile::Empty => {
+                        if *move_direction == Direction::Left {
+                            for x in box_stop_x..rx {
+                                warehouse[box_stop_y as usize][x as usize] = warehouse[box_stop_y as usize][(x + 1) as usize].clone();
+                            }
+                        } else {
+                            for x in (nrx..(box_stop_x + 1)).rev() {
+                                warehouse[box_stop_y as usize][x as usize] = warehouse[box_stop_y as usize][(x - 1) as usize].clone();
+                            }
+                        }
+                        warehouse[ry as usize][rx as usize] = WideTile::Empty;
+                        print_wide_warehouse(&warehouse);
+                        (warehouse, next_robot_pos)
+                    },
+                    _ => panic!("Something went wrong when trying to move boxes."),
+                }
+            } else {
+                let mut box_pos_to_update: Vec<Coord> = Vec::new();
+                let mut boxes_to_check: Vec<Coord> = Vec::new();
+                let mut crashed: bool = false;
+                if warehouse[nry as usize][nrx as usize] == WideTile::BoxLeft {
+                    boxes_to_check.push((nrx, nry));
+                } else {
+                    boxes_to_check.push((nrx - 1, nry));
+                }
+                while boxes_to_check.len() > 0 && !crashed{
+                    box_pos_to_update.append(&mut boxes_to_check.clone());
+                    boxes_to_check = boxes_to_check.into_iter().flat_map(|(x, y)| {
+                        match warehouse[(y + dy) as usize][x as usize] {
+                            WideTile::Wall => {
+                                crashed = true;
+                                vec![]
+                            },
+                            WideTile::Empty => vec![],
+                            WideTile::Robot => panic!("Something went wrong when trying to move boxes."),
+                            WideTile::BoxLeft => vec![(y + dy, x)],
+                            WideTile::BoxRight => 
+                                match warehouse[(y + dy) as usize][(x + 1) as usize] {
+                                    WideTile::Wall => {
+                                        crashed = true;
+                                        vec![]
+                                    },
+                                    WideTile::Empty => vec![(y + dy, x)],
+                                    WideTile::BoxLeft => vec![(y + dy, x - 1), (y + dy, x + 1)],
+                                    _ => panic!("Something went wrong when trying to move boxes.")
+                                },
+                        }
+                    }).collect();
+                }
+                if crashed {
+                    print_wide_warehouse(&warehouse);
+                    (warehouse, robot_pos)
+                } else {
+                    for (x, y) in box_pos_to_update {
+                        warehouse[y as usize][x as usize] = WideTile::BoxLeft;
+                        warehouse[y as usize][(x + 1) as usize] = WideTile::BoxRight;
+                    }
+                    warehouse[nry as usize][nrx as usize] = WideTile::Robot;
+                    warehouse[ry as usize][rx as usize] = WideTile::Empty;
+                    print_wide_warehouse(&warehouse);
+                    (warehouse, next_robot_pos)
+                }
+            }
+        }
+    }
 }
 
 fn move_robot((mut warehouse, robot_pos @ (rx, ry)):(Warehouse, Coord), move_direction:&Direction) -> (Warehouse, Coord) {
@@ -112,6 +240,21 @@ fn get_robot_pos(warehouse:&Warehouse) -> Coord {
     let y: usize = warehouse.iter().position(|line| line.contains(&Tile::Robot)).unwrap();
     let x: usize = warehouse[y].iter().position(|tile| *tile == Tile::Robot).unwrap();
     (x as i32, y as i32)
+}
+
+fn get_robot_wide_pos(warehouse:&WideWarehouse) -> Coord {
+    let y: usize = warehouse.iter().position(|line| line.contains(&WideTile::Robot)).unwrap();
+    let x: usize = warehouse[y].iter().position(|tile| *tile == WideTile::Robot).unwrap();
+    (x as i32, y as i32)
+}
+
+fn enwiden_warehouse(warehouse:Warehouse) -> WideWarehouse {
+    warehouse.iter().map(|line| line.iter().flat_map(|tile| match tile {
+        Tile::Wall  => vec![WideTile::Wall, WideTile::Wall],
+        Tile::Box   => vec![WideTile::BoxLeft, WideTile::BoxRight],
+        Tile::Robot => vec![WideTile::Robot, WideTile::Empty],
+        Tile::Empty => vec![WideTile::Empty, WideTile::Empty],
+    }).collect()).collect()
 }
 
 fn parse_input(input:&str) -> (Warehouse, Vec<Direction>) {
