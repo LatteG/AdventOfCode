@@ -1,5 +1,5 @@
 use std::str::FromStr;
-
+use memoize::memoize;
 use regex::Regex;
 
 pub fn task1(input:&str) {
@@ -9,19 +9,20 @@ pub fn task1(input:&str) {
 }
 
 pub fn task2(input:&str) {
-    let stock: Vec<&str> = input.split_once("\n\n").unwrap().0.split(", ").collect();
+    let stock: Vec<String> = input.split_once("\n\n").unwrap().0.split(", ").map(|s| s.to_string()).collect();
     let (stock_regex, wanted_patterns): (Regex, Vec<&str>) = parse_input(input);
     let possible_patterns: Vec<&str> = wanted_patterns.into_iter().filter(|pattern| stock_regex.is_match(*pattern)).collect();
-    let towel_combinations: u32 = possible_patterns.into_iter().fold(0, |acc, pattern| acc + get_towel_combination_count(pattern, &stock));
+    let towel_combinations: u64 = possible_patterns.into_iter().fold(0, |acc, pattern| acc + get_towel_combination_count(pattern.to_string(), stock.clone()));
     println!("The patterns can be built in {:?} combinations", towel_combinations);
 }
 
-fn get_towel_combination_count(pattern: &str, stock: &Vec<&str>) -> u32 {
+#[memoize]
+fn get_towel_combination_count(pattern: String, stock: Vec<String>) -> u64 {
     if pattern.len() == 0 {
         1
     } else {
         stock.iter().fold(0, |acc, towel| if let Some(remaining_pattern) = pattern.strip_prefix(towel) {
-                acc + get_towel_combination_count(remaining_pattern, stock)
+                acc + get_towel_combination_count(remaining_pattern.to_string(), stock.clone())
             } else {
                 acc
             })
