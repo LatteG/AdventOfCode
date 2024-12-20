@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::{cmp::{max, min}, iter};
 
 
 type Coord = (usize, usize);
@@ -6,8 +6,7 @@ type RaceTrack = Vec<Coord>;
 
 pub fn task1(input:&str) {
     let track: RaceTrack = parse_input(input);
-    println!("Got the track!");
-    let min_improvement: usize = 20;
+    let min_improvement: usize = if track.len() > 200 {100} else {20};
     let cheat_count: u32 = find_cheat_count(track, min_improvement);
     println!("There are {} cheats that improve the time by at least {} picoseconds", cheat_count, min_improvement);
 }
@@ -24,16 +23,18 @@ fn find_cheat_count(track:RaceTrack, min_improvement:usize) -> u32 {
             let end @ (ex, ey): Coord = track[end_index];
             let dx: usize = sx.abs_diff(ex);
             let dy: usize = sy.abs_diff(ey);
-            if dx + dy <= 3 {
-                cheat_count += 1;
-                println!("({:2}, {:2}) -> ({:2}, {:2}), saving: {}", sx, sy, ex, ey, end_index - start_index - 1);
+            if let Some(walls_phased) = check_valid_cheat(&track, start, end) {
+                if end_index - start_index - walls_phased - 1 >= min_improvement {
+                    cheat_count += 1;
+                    // println!("({:2}, {:2}) -> ({:2}, {:2}), saving: {}", sx, sy, ex, ey, end_index - start_index - walls_phased - 1);
+                }
             }
         }
     }
     cheat_count
 }
 
-fn check_valid_cheat(track:RaceTrack, start@(sx,sy):Coord, end@(ex,ey):Coord) -> bool {
+fn check_valid_cheat(track:&RaceTrack, start@(sx,sy):Coord, end@(ex,ey):Coord) -> Option<usize> {
     let dx: usize = sx.abs_diff(ex);
     let dy: usize = sy.abs_diff(ey);
 
@@ -42,28 +43,21 @@ fn check_valid_cheat(track:RaceTrack, start@(sx,sy):Coord, end@(ex,ey):Coord) ->
     let min_y: usize = min(sy, ey);
     let max_y: usize = max(sy, ey);
 
-    if dx + dy > 3 {
-        false
+    if dx + dy > 3 || dx + dy < 2 {
+        None
     } else {
-        if dy == 0 {
-            for x in (min_x + 1)..max_x {
-                if track[sy][x] != '#' {
-                    return false
+        let mut empty_count: u32 = 0;
+        for cx in min_x..=max_x {
+            for cy in min_y..=max_y {
+                if [start, end].contains(&(cx, cy)) {
+                    continue;
                 }
-            }
-            true
-        } else if dx == 0 {
-            for y in (min_y + 1)..max_y {
-                if track[y][sx] != '#' {
-                    return false;
+                if track.contains(&(cx, cy)) {
+                    return None;
                 }
-            }
-            true
-        } else {
-            if dy == 1 && dx == 1{
-
             }
         }
+        Some(dx + dy - 1)
     }
 }
 
