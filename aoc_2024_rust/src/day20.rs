@@ -1,4 +1,6 @@
-use std::cmp::{max, min};
+use std::{cmp::{max, min}, path::Iter};
+
+use memoize::memoize;
 
 
 type Coord = (usize, usize);
@@ -24,7 +26,7 @@ fn find_cheat_count(track:RaceTrack, min_improvement:usize) -> u32 {
             let end @ (ex, ey): Coord = track[end_index];
             let dx: usize = sx.abs_diff(ex);
             let dy: usize = sy.abs_diff(ey);
-            if dx + dy <= 3 {
+            if dx + dy <= 3 && check_valid_cheat(track.clone(), start, end) {
                 cheat_count += 1;
                 println!("({:2}, {:2}) -> ({:2}, {:2}), saving: {}", sx, sy, ex, ey, end_index - start_index - 1);
             }
@@ -33,6 +35,7 @@ fn find_cheat_count(track:RaceTrack, min_improvement:usize) -> u32 {
     cheat_count
 }
 
+#[memoize]
 fn check_valid_cheat(track:RaceTrack, start@(sx,sy):Coord, end@(ex,ey):Coord) -> bool {
     let dx: usize = sx.abs_diff(ex);
     let dy: usize = sy.abs_diff(ey);
@@ -47,22 +50,47 @@ fn check_valid_cheat(track:RaceTrack, start@(sx,sy):Coord, end@(ex,ey):Coord) ->
     } else {
         if dy == 0 {
             for x in (min_x + 1)..max_x {
-                if track[sy][x] != '#' {
+                if track.contains(&(sy, x)) {
                     return false
                 }
             }
             true
         } else if dx == 0 {
             for y in (min_y + 1)..max_y {
-                if track[y][sx] != '#' {
+                if track.contains(&(y, sx)) {
                     return false;
                 }
             }
             true
+        } else if dy == 1 && dx == 1 {
+            let neighbours: Vec<Coord> = vec![(0, 0), (0, 1), (1, 0), (1, 1)];
+            neighbours.iter().fold(0, |acc, (x_offset, y_offset):&Coord| if track.contains(&(min_x + x_offset, min_y + x_offset)) {acc + 1} else {acc}) == 2
         } else {
-            if dy == 1 && dx == 1{
-
+            let mut neighbours: Vec<Coord> = Vec::new();
+            let mut temp: Coord = (0, 0);
+            if sx > min_x {
+                temp = (sx - 1, sy);
+                if !track.contains(&temp) {
+                    neighbours.push(temp);
+                }
+            } else if sx < max_x {
+                temp = (sx + 1, sy);
+                if !track.contains(&temp) {
+                    neighbours.push(temp);
+                }
             }
+            if sy > min_y {
+                temp = (sx, sy - 1);
+                if !track.contains(&temp) {
+                    neighbours.push(temp);
+                }
+            } else if sy < max_y {
+                temp = (sx, sy + 1);
+                if !track.contains(&temp) {
+                    neighbours.push(temp);
+                }
+            }
+            neighbours.iter().any(|next_start| check_valid_cheat(track.clone(), *next_start, end))
         }
     }
 }
