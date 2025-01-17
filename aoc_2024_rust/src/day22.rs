@@ -1,88 +1,43 @@
-use std::{cmp::{max, min}, collections::VecDeque, ops::Index};
+use std::{cmp::{max, min}, collections::{HashMap, HashSet, VecDeque}, ops::Index, path::absolute};
 
 pub fn task1(input:&str) {
     let initial_secret_numbers: Vec<u64> = parse_input(input);
     let generated_secret_numbers: Vec<u64> = initial_secret_numbers.iter().map(|secret| get_nth_secret_number(*secret, 2000)).collect();
-    
-    // for index in 0..initial_secret_numbers.len() {
-    //     println!("{}: {}", initial_secret_numbers[index], generated_secret_numbers[index]);
-    // }
 
     println!("Sum of all 2000th secret numbers is: {}", generated_secret_numbers.iter().sum::<u64>());
-    // let mix_test: u64 = mix(15, 42);
-    // println!("Test mix 15 & 42, should be 37: {}, {}", mix_test, mix_test == 37);
-    // let prune_test: u64 = prune(100000000);
-    // println!("Test prune 100000000, should be 16113920: {}, {}", prune_test, prune_test == 16113920);
-    
-    // let mut secret: u64 = 123;
-    // let correct: Vec<u64> = vec![15887950, 16495136, 527345, 704524, 1553684, 12683156, 11100544, 12249484, 7753432, 5908254];
-    // for step in 0..10 {
-    //     secret = step_secret_number(secret);
-    //     println!("{}: {}, {}", step, secret, correct[step]);
-    // }
 }
 
 pub fn task2(input:&str) {
     let initial_secret_numbers: Vec<u64> = parse_input(input);
-    let bananas_gained: u64 = find_best_hiding_spot_sequence(initial_secret_numbers, 2000);
-    // let bananas_gained: Vec<u64> = initial_secret_numbers.iter().map(|secret| sell_hiding_spot(vec![-2,1,-1,3], *secret, 2000)).collect();
-
-    // for index in 0..initial_secret_numbers.len() {
-    //     println!("{}: {}", initial_secret_numbers[index], bananas_gained[index]);
-    // }
-    println!("Total bananas: {}", bananas_gained);
+    let steps: usize = 2000;
+    let secret_number_sequences: Vec<Vec<u64>> = initial_secret_numbers.iter().map(|secret| get_secret_number_sequence(*secret, steps)).collect();
+    let mut sequences: HashMap<Vec<i64>, u64> = HashMap::new();
+    for sns in secret_number_sequences {
+        let mut visited_sequences: HashSet<Vec<i64>> = HashSet::new();
+        let prices: Vec<u64> = sns.iter().map(|n| n % 10).collect();
+        let price_diffs: Vec<i64> = prices[0..steps].iter().zip(prices[1..].iter()).map(|(&v0, &v1)| v1 as i64 - v0 as i64).collect();
+        for i in 4..=steps {
+            let seq: Vec<i64> = price_diffs[(i-4)..i].to_vec();
+            if !visited_sequences.contains(&seq) {
+                visited_sequences.insert(seq.clone());
+                sequences.insert(seq.clone(), sequences.get(&seq).unwrap_or(&0) + prices[i]);
+            }
+        }
+    }
+    let profit: u64 = *sequences.values().max().unwrap();
+    println!("Total bananas: {}", profit);
 }
 
 fn parse_input(input:&str) -> Vec<u64> {
     input.lines().map(|line| line.parse::<u64>().unwrap()).collect()
 }
 
-fn find_best_hiding_spot_sequence(initial_secret_numbers:Vec<u64>, max_steps:u64) -> u64 {
-    let mut highest_banana_amount: u64 = 0;
-    for pattern_1 in -9..=9 {
-        let min_step_after_1: i64 = max(-9, -9 - pattern_1);
-        let max_step_after_1: i64 = min(9, 9 - pattern_1);
-        for pattern_2 in min_step_after_1..=max_step_after_1 {
-            let min_step_after_2: i64 = max(-9, -9 - (pattern_1 + pattern_2));
-            let max_step_after_2: i64 = min(9, 9 - (pattern_1 + pattern_2));
-            for pattern_3 in min_step_after_2..=max_step_after_2 {
-                let min_step_after_3: i64 = max(0, -9 - (pattern_1 + pattern_2 + pattern_3));
-                let max_step_after_3: i64 = min(9, 9 - (pattern_1 + pattern_2 + pattern_3));
-                for pattern_4 in min_step_after_3..=max_step_after_3 {
-                    let banana_amount: u64 = initial_secret_numbers.iter().map(|secret| sell_hiding_spot(vec![pattern_1, pattern_2, pattern_3, pattern_4], *secret, max_steps)).sum::<u64>();
-                    highest_banana_amount = max(banana_amount, highest_banana_amount);
-                }
-            }
-        }
+fn get_secret_number_sequence(secret:u64, steps:usize) -> Vec<u64> {
+    let mut num_seq: Vec<u64> = vec![secret];
+    for _ in 0..steps {
+        num_seq.push(step_secret_number(*num_seq.last().unwrap()));
     }
-    highest_banana_amount
-}
-
-fn sell_hiding_spot(pattern:Vec<i64>, start:u64, max_steps:u64) -> u64 {
-    let mut prev_secret: u64 = start;
-    let mut buffer: VecDeque<i64> = VecDeque::new();
-
-    for _ in 0..max_steps {
-        let next_secret: u64 = step_secret_number(prev_secret);
-        buffer.push_back(next_secret as i64 % 10 - prev_secret as i64 % 10);
-        if buffer.len() > 4 {
-            buffer.pop_front();
-            if is_pattern(&pattern, &buffer) {
-                return next_secret % 10;
-            }
-        }
-        prev_secret = next_secret;
-    }
-    0
-}
-
-fn is_pattern(pattern:&Vec<i64>, buffer:&VecDeque<i64>) -> bool {
-    for index in 0..pattern.len() {
-        if pattern[index] != buffer[index] {
-            return false;
-        }
-    }
-    true
+    num_seq
 }
 
 fn get_nth_secret_number(secret:u64, steps:u64) -> u64 {
