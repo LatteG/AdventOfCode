@@ -15,16 +15,6 @@ pub fn task2(input:&str) {
     let track: RaceTrack = parse_input(input);
     let dist_map: HashMap<Coord, u32> = get_dist_map(&track);
     let min_improvement: u32 = if track.len() > 200 {100} else {50};
-    // let mut map:Vec<Vec<String>> = vec![vec!["[ ]".to_string(); 16]; 15];
-    // for x in 0..16 {
-    //     for y in 0..15 {
-    //         if let Some(num) = dist_map.get(&(x, y)) {
-    //             map[y][x] = format!("{:3}", num);
-    //         }
-    //     }
-    // }
-    // let map_string: String = map.iter().map(|row| row.join("")).collect::<Vec<String>>().join("\n");
-    // println!("{}", map_string);
     let cheat_count: u32 = find_cheat_count_2(track, dist_map, min_improvement, 20);
     println!("There are {} cheats that improve the time by at least {} picoseconds", cheat_count, min_improvement);
 }
@@ -40,7 +30,6 @@ fn get_dist_map(track:&RaceTrack) -> HashMap<Coord, u32> {
 
 fn find_cheat_count_2(track:RaceTrack, dist_map:HashMap<Coord, u32>, min_improvement:u32, max_cheat_dist:u32) -> u32 {
     let mut cheat_count: u32 = 0;
-    let mut map:Vec<Vec<String>> = vec![vec!["   ".to_string(); 16]; 15];
     for pos @ (x, y) in track {
         let mut start_value: u32 = *dist_map.get(&pos).unwrap();
         for ex in max(0, x as i32 - max_cheat_dist as i32)..=(x as i32 + max_cheat_dist as i32) {
@@ -50,21 +39,6 @@ fn find_cheat_count_2(track:RaceTrack, dist_map:HashMap<Coord, u32>, min_improve
                     continue;
                 }
                 let cheat_value: i32 = start_value as i32 + (x as i32 - ex).abs() + (y as i32 - ey).abs();
-                if pos == (7, 9) {
-                    let cell_val: String = match dist_map.get(&(ex as usize, ey as usize)) {
-                        Some(num) => {
-                            println!("({}, {}): {} - {} = {}, {}", ex, ey, num, cheat_value, *num as i32 - cheat_value, *num as i32 - cheat_value >= min_improvement as i32);
-                            format!("{:3}", num)
-                        },
-                        None => {
-                            // println!("({}, {}): wall", ex, ey);
-                            "[ ]".to_string()
-                        },
-                    };
-                    if ex < 15 && ey < 15 {
-                        map[ey as usize][ex as usize] = cell_val;
-                    }
-                }
                 match dist_map.get(&(ex as usize, ey as usize)) {
                     Some(&exit_goal_dist) if exit_goal_dist as i32 - cheat_value >= min_improvement as i32 => cheat_count += 1,
                     _ => (),
@@ -72,8 +46,6 @@ fn find_cheat_count_2(track:RaceTrack, dist_map:HashMap<Coord, u32>, min_improve
             }
         }
     }
-    let map_string: String = map.iter().map(|row| row.join("")).collect::<Vec<String>>().join("\n");
-    println!("{}", map_string);
     cheat_count
 }
 
@@ -88,7 +60,6 @@ fn find_cheat_count(track:RaceTrack, min_improvement:usize) -> u32 {
             if let Some(walls_phased) = check_valid_cheat(&track, start, end) {
                 if end_index - start_index - walls_phased - 1 >= min_improvement {
                     cheat_count += 1;
-                    // println!("({:2}, {:2}) -> ({:2}, {:2}), saving: {}", sx, sy, ex, ey, end_index - start_index - walls_phased - 1);
                 }
             }
         }
